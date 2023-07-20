@@ -1,0 +1,87 @@
+<html>
+
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0"></script>
+</head>
+
+<body>
+  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+
+  
+
+  <section id="demos" class="invisible">
+
+    <div style="text-align:center">
+      <input type="file" id="fileInput"><br><br>
+      <img id="testimage" crossorigin="anonymous" ><br>
+    </div>
+  </section>
+
+  <script type="module">
+   
+
+  var fileInput = document.getElementById('fileInput');
+  var reader = new FileReader();
+  var testimage = document.getElementById('testimage'); // Add this line to define testimage
+
+  // Add event listener to file input element
+  fileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+
+    // Create FileReader object
+    const reader = new FileReader();
+
+    // Set onload event handler for FileReader
+    reader.onload = (e) => {
+      // Check if file type is an image
+      if (file.type.startsWith('image/')) {
+        // Set image display source to the loaded data URL
+        testimage.onload = () => {
+          run();
+        }
+        testimage.src = e.target.result;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+
+      const CLASS_NAMES = ["glioma_tumor", "meningioma_tumor", "no_tumor", "pituitary_tumor"];
+
+      async function loadModel() {
+        return await tf.loadLayersModel('model_architecture.json');
+      }
+
+      async function run() {
+        const model = await loadModel();
+        console.log("model=" + model);
+
+        classifyImage(model, "testimage");
+      }
+    
+
+      
+      function classifyImage(model, imageId) {
+        const image = document.getElementById(imageId);
+        const imageTensor = preprocess_new(image);
+        // reference: https://codelabs.developers.google.com/tensorflowjs-transfer-learning-teachable-machine#13
+        let prediction = model.predict(imageTensor).squeeze();
+        let highestIndex = prediction.argMax().arraySync();
+        let predictionArray = prediction.arraySync();
+        console.log(predictionArray);
+        console.log('Prediction: ' + CLASS_NAMES[highestIndex] + ' with ' + Math.floor(predictionArray[highestIndex] * 100) + '% confidence');
+      }
+
+      // reference: https://codelabs.developers.google.com/tensorflowjs-transfer-learning-teachable-machine#13
+      function preprocess_new(imgData) {
+        //convert the image data to a tensor
+        let imgAsTensor = tf.browser.fromPixels(imgData).div(255);
+        let resizedTensorImage = tf.image.resizeBilinear(imgAsTensor, [150, 150], true);
+        return resizedTensorImage.expandDims();
+      }
+     
+    </script>
+  </body>
+
+  </html>
